@@ -227,7 +227,13 @@ async def add_birthday(interaction: discord.Interaction, user: discord.User, bir
         print(f"Error adding birthday: {e}")
         await interaction.response.send_message("There was an error saving the birthday. Please try again later.", ephemeral=True)
 
-@tree.command(name="remove_birthday", description="[Admin Only] Remove a birthday entry by username")
+@tree.command(
+    name="remove_birthday",
+    description="[Admin Only] Remove a birthday entry by username"
+)
+@app_commands.describe(
+    username="The display name of the person whose birthday to remove"
+)
 async def remove_birthday(interaction: discord.Interaction, username: str):
     # Check if user is admin
     if not interaction.user.guild_permissions.administrator:
