@@ -279,28 +279,61 @@ async def remove_birthday(interaction: discord.Interaction, username: str):
 # Bot Startup
 @bot.event
 async def on_ready():
-    print(f"Logged in as {bot.user}")
-    print(f"Bot ID: {bot.user.id}")
-    print("Connected to servers:")
-    for guild in bot.guilds:
-        print(f"- {guild.name} (ID: {guild.id})")
-    
-    setup_database()
     try:
+        print(f"Logged in as {bot.user}")
+        print(f"Bot ID: {bot.user.id}")
+        print("Connected to servers:")
+        for guild in bot.guilds:
+            print(f"- {guild.name} (ID: {guild.id})")
+        
+        # Setup database first
+        setup_database()
+        
+        # Sync commands with better error handling
         print("Attempting to sync commands...")
-        synced = await tree.sync()
-        print(f"Successfully synced {len(synced)} command(s)!")
-        print("Available commands:")
-        for command in synced:
-            print(f"- /{command.name}: {command.description}")
+        try:
+            # Clear existing commands first
+            tree.clear_commands(guild=None)
+            print("Cleared existing commands")
+            
+            # Add our commands
+            synced = await tree.sync()
+            print(f"Successfully synced {len(synced)} command(s)!")
+            
+            # Print each command details
+            print("\nAvailable commands:")
+            for cmd in synced:
+                print(f"- /{cmd.name}: {cmd.description}")
+                if hasattr(cmd, 'parameters') and cmd.parameters:
+                    for param in cmd.parameters:
+                        print(f"  • Parameter: {param.name} ({param.description})")
+            print("\nCommand sync complete!")
+            
+        except discord.errors.HTTPException as e:
+            print(f"HTTP error during command sync: {e.status} - {e.text}")
+        except discord.errors.DiscordException as e:
+            print(f"Discord error during command sync: {e}")
+        except Exception as e:
+            print(f"Unexpected error during command sync: {type(e).__name__} - {e}")
+    
     except Exception as e:
-        print(f"Failed to sync commands: {e}")
+        print(f"Error in on_ready: {type(e).__name__} - {e}")
 
 async def main():
-    print("Starting bot...")
-    async with bot:
-        await bot.start(TOKEN)
+    try:
+        print("Starting bot...")
+        async with bot:
+            await bot.start(TOKEN)
+    except Exception as e:
+        print(f"Error in main: {type(e).__name__} - {e}")
+        raise
 
 if __name__ == "__main__":
     print("Initializing Bugabot...")
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\nBot shutdown requested")
+    except Exception as e:
+        print(f"Fatal error: {type(e).__name__} - {e}")
+        raise
