@@ -227,6 +227,49 @@ async def add_birthday(interaction: discord.Interaction, user: discord.User, bir
         print(f"Error adding birthday: {e}")
         await interaction.response.send_message("There was an error saving the birthday. Please try again later.", ephemeral=True)
 
+@tree.command(name="remove_birthday", description="[Admin Only] Remove a birthday entry by username")
+async def remove_birthday(interaction: discord.Interaction, username: str):
+    # Check if user is admin
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("You need administrator permissions to use this command!", ephemeral=True)
+        return
+
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cursor:
+                # First check if the username exists
+                cursor.execute("SELECT username FROM birthdays WHERE LOWER(username) = LOWER(%s)", (username,))
+                result = cursor.fetchone()
+                
+                if not result:
+                    await interaction.response.send_message(f"Could not find a birthday entry for '{username}'.", ephemeral=True)
+                    return
+                
+                # Remove the birthday entry
+                cursor.execute("DELETE FROM birthdays WHERE LOWER(username) = LOWER(%s)", (username,))
+                conn.commit()
+                
+                await interaction.response.send_message(f"Successfully removed birthday entry for '{username}'.")
+                
+                # Show updated birthday list
+                cursor.execute("SELECT username, birthday FROM birthdays ORDER BY birthday")
+                results = cursor.fetchall()
+                
+                if results:
+                    birthday_list = ["**📅 Updated Birfday List:**"]
+                    for username, birthday in results:
+                        month, day = birthday.split('-')
+                        date = datetime.strptime(birthday, '%m-%d').strftime('%B %d')
+                        birthday_list.append(f"• **{username}**: {date}")
+                    
+                    await interaction.followup.send('\n'.join(birthday_list))
+                else:
+                    await interaction.followup.send("The birthday list is now empty!")
+                
+    except Exception as e:
+        print(f"Error removing birthday: {e}")
+        await interaction.response.send_message("There was an error removing the birthday entry. Please try again later.", ephemeral=True)
+
 # Bot Startup
 @bot.event
 async def on_ready():
