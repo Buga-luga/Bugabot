@@ -108,7 +108,7 @@ async def init_default_birthdays(interaction: discord.Interaction):
                     """, (user_id, username, birthday))
                 
                 conn.commit()
-                await interaction.response.send_message("Hi, I'm Zugabot! We have your list of birfs!")
+                await interaction.response.send_message("Hi, I'm Bugabot! We have your list of birfs!")
                 
                 # Verify the insertions
                 cursor.execute("SELECT username, birthday FROM birthdays ORDER BY birthday")
@@ -160,23 +160,38 @@ async def add_birthday(interaction: discord.Interaction, user: discord.User, bir
         await interaction.response.send_message("You need administrator permissions to use this command!", ephemeral=True)
         return
 
-    # Validate birthday format
     try:
-        if not birthday or len(birthday) != 5 or birthday[2] != "/" or not birthday.replace("/", "").isdigit():
+        # Split the date and validate format
+        parts = birthday.split('/')
+        if len(parts) != 2:
             await interaction.response.send_message("Invalid date format! Use MM/DD (e.g., 01/31).", ephemeral=True)
             return
-        
-        month, day = birthday.split('/')
+
+        month, day = parts
+        # Ensure both parts are numbers and proper length
+        if not (month.isdigit() and day.isdigit()):
+            await interaction.response.send_message("Month and day must be numbers! Use MM/DD (e.g., 01/31).", ephemeral=True)
+            return
+
         month_int = int(month)
         day_int = int(day)
         
         # Basic date validation
-        if month_int < 1 or month_int > 12 or day_int < 1 or day_int > 31:
-            await interaction.response.send_message("Invalid date! Month must be 1-12 and day must be 1-31.", ephemeral=True)
+        if month_int < 1 or month_int > 12:
+            await interaction.response.send_message("Invalid month! Month must be between 01 and 12.", ephemeral=True)
+            return
+        
+        # Check days per month
+        days_in_month = {
+            1: 31, 2: 29, 3: 31, 4: 30, 5: 31, 6: 30,
+            7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31
+        }
+        if day_int < 1 or day_int > days_in_month[month_int]:
+            await interaction.response.send_message(f"Invalid day for month {month_int}!", ephemeral=True)
             return
             
         # Convert to MM-DD format for database
-        birthday_db = f"{month:02d}-{day:02d}"
+        birthday_db = f"{month_int:02d}-{day_int:02d}"
         
         with get_db() as conn:
             with conn.cursor() as cursor:
@@ -189,7 +204,7 @@ async def add_birthday(interaction: discord.Interaction, user: discord.User, bir
                 """, (str(user.id), str(user.name), birthday_db))
                 
                 conn.commit()
-                await interaction.response.send_message(f"Added birthday for {user.mention}: {birthday}")
+                await interaction.response.send_message(f"Added birthday for {user.mention}: {month_int:02d}/{day_int:02d}")
                 
                 # Show updated birthday list
                 cursor.execute("SELECT username, birthday FROM birthdays ORDER BY birthday")
@@ -204,10 +219,8 @@ async def add_birthday(interaction: discord.Interaction, user: discord.User, bir
                     
                     await interaction.followup.send('\n'.join(birthday_list))
                 
-    except ValueError:
-        await interaction.response.send_message("Invalid date format! Use MM/DD (e.g., 01/31).", ephemeral=True)
-    except psycopg2.Error as e:
-        print(f"Database error: {e}")
+    except Exception as e:
+        print(f"Error adding birthday: {e}")
         await interaction.response.send_message("There was an error saving the birthday. Please try again later.", ephemeral=True)
 
 # Bot Startup
