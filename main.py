@@ -292,12 +292,16 @@ async def on_ready():
         # Sync commands with better error handling
         print("Attempting to sync commands...")
         try:
-            # Clear existing commands first
-            tree.clear_commands(guild=None)
-            print("Cleared existing commands")
+            # Get the main guild
+            main_guild = bot.get_guild(691771507986268250)  # Broken Club™ server ID
+            if not main_guild:
+                print("Could not find main guild!")
+                return
+                
+            print(f"Syncing commands to {main_guild.name}...")
             
-            # Add our commands
-            synced = await tree.sync()
+            # Sync commands to the specific guild
+            synced = await tree.sync(guild=main_guild)
             print(f"Successfully synced {len(synced)} command(s)!")
             
             # Print each command details
