@@ -193,6 +193,10 @@ async def add_birthday(interaction: discord.Interaction, user: discord.User, bir
         # Convert to MM-DD format for database
         birthday_db = f"{month_int:02d}-{day_int:02d}"
         
+        # Get the member object to access their server nickname
+        member = interaction.guild.get_member(user.id)
+        display_name = member.display_name if member else user.name
+        
         with get_db() as conn:
             with conn.cursor() as cursor:
                 # Add the new birthday
@@ -201,10 +205,10 @@ async def add_birthday(interaction: discord.Interaction, user: discord.User, bir
                     VALUES (%s, %s, %s)
                     ON CONFLICT (user_id) 
                     DO UPDATE SET username = EXCLUDED.username, birthday = EXCLUDED.birthday
-                """, (str(user.id), str(user.name), birthday_db))
+                """, (str(user.id), display_name, birthday_db))
                 
                 conn.commit()
-                await interaction.response.send_message(f"Added birthday for {user.mention}: {month_int:02d}/{day_int:02d}")
+                await interaction.response.send_message(f"Added birthday for {display_name}: {month_int:02d}/{day_int:02d}")
                 
                 # Show updated birthday list
                 cursor.execute("SELECT username, birthday FROM birthdays ORDER BY birthday")
