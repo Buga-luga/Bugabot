@@ -292,16 +292,37 @@ async def on_ready():
         # Sync commands with better error handling
         print("Attempting to sync commands...")
         try:
-            # Get the main guild
-            main_guild = bot.get_guild(691771507986268250)  # Broken Club™ server ID
-            if not main_guild:
-                print("Could not find main guild!")
-                return
-                
-            print(f"Syncing commands to {main_guild.name}...")
+            # First, sync globally
+            print("Syncing commands globally...")
+            commands = [
+                app_commands.Command(
+                    name="init_default_birthdays",
+                    description="[Admin Only] Initialize the birthday list.",
+                    callback=init_default_birthdays
+                ),
+                app_commands.Command(
+                    name="list_birthdays",
+                    description="Show all birthdays.",
+                    callback=list_birthdays
+                ),
+                app_commands.Command(
+                    name="add_birthday",
+                    description="Add a birthday for a user (MM/DD format)",
+                    callback=add_birthday
+                ),
+                app_commands.Command(
+                    name="remove_birthday",
+                    description="[Admin Only] Remove a birthday entry by username",
+                    callback=remove_birthday
+                )
+            ]
             
-            # Sync commands to the specific guild
-            synced = await tree.sync(guild=main_guild)
+            # Add commands to the tree
+            for cmd in commands:
+                tree.add_command(cmd)
+            
+            # Sync the commands
+            synced = await tree.sync()
             print(f"Successfully synced {len(synced)} command(s)!")
             
             # Print each command details
