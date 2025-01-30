@@ -33,7 +33,9 @@ intents = discord.Intents.default()
 intents.messages = True
 intents.guilds = True  # Need this for slash commands
 bot = commands.Bot(command_prefix="!", intents=intents)
-tree = bot.tree
+
+# Create a new command tree
+tree = app_commands.CommandTree(bot)
 
 # Database Setup
 def setup_database():
@@ -292,36 +294,7 @@ async def on_ready():
         # Sync commands with better error handling
         print("Attempting to sync commands...")
         try:
-            # First, sync globally
-            print("Syncing commands globally...")
-            commands = [
-                app_commands.Command(
-                    name="init_default_birthdays",
-                    description="[Admin Only] Initialize the birthday list.",
-                    callback=init_default_birthdays
-                ),
-                app_commands.Command(
-                    name="list_birthdays",
-                    description="Show all birthdays.",
-                    callback=list_birthdays
-                ),
-                app_commands.Command(
-                    name="add_birthday",
-                    description="Add a birthday for a user (MM/DD format)",
-                    callback=add_birthday
-                ),
-                app_commands.Command(
-                    name="remove_birthday",
-                    description="[Admin Only] Remove a birthday entry by username",
-                    callback=remove_birthday
-                )
-            ]
-            
-            # Add commands to the tree
-            for cmd in commands:
-                tree.add_command(cmd)
-            
-            # Sync the commands
+            # Sync commands globally
             synced = await tree.sync()
             print(f"Successfully synced {len(synced)} command(s)!")
             
